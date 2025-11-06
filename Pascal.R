@@ -4,4 +4,4 @@
 
 # Frequences alléliques initiales sous forme d'une liste :
 
-pY <- 
+pY <- efbdcqsopdjnqoickq
