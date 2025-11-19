@@ -47,3 +47,9 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+# graphiques
+evolution_freq*.png
+
+# fichier test
+Pascal_test.R
