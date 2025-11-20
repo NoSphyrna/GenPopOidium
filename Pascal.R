@@ -473,8 +473,8 @@ get_fitness <- function(population, gen, planification, val_selectives) {
   if (!is.list(planification)) stop("planification doit être une liste de dataframes")
   if (!is.list(val_selectives)) stop("val_selectives doit être une liste de vecteurs")
   df <- planification[[population]]
-  if ((gen%%10) %in% df$generation){
-    return(switch(df$traitement[df$generation == (gen%%10)],
+  if ((gen%%nb_gen_an) %in% df$generation){
+    return(switch(df$traitement[df$generation == (gen%%nb_gen_an)],
                   "DMI" = val_selectives$traitements_DMI,
                   "QoI" = val_selectives$traitements_QoI,
                   "DMI & QoI" = val_selectives$traitements_DMI_et_QoI)
@@ -505,13 +505,13 @@ for (gen in 1:nb_generations){
 
     w <- get_fitness(population = pop, gen = gen, planification = planifications_traitements, val_selectives = w_traitements)
 
-    w_bar <- pY_val*pG_val*w["YG"] +
-             pY_val*(1 -pG_val)*w["Yg"] +
-             (1 - pY_val)*pG_val*w["yG"] +
-             (1 - pY_val)*(1 - pG_val)*w["yg"]
+    w_bar <- f_YG_val*w["YG"] +
+             f_Yg_val*w["Yg"] +
+             f_yG_val*w["yG"] +
+             f_yg_val*w["yg"]
 
-    pY_s_val <- pY_val * (pG_val * w["YG"] + (1 - pG_val) * w["Yg"]) / w_bar
-    pG_s_val <- pG_val * (pY_val * w["YG"] + (1 - pY_val) * w["yG"]) / w_bar
+    pY_s_val <- (f_YG_val * w["YG"] + f_Yg_val * w["Yg"]) / w_bar
+    pG_s_val <- (f_YG_val * w["YG"] + f_yG_val * w["yG"]) / w_bar
 
     f_YG_s_val <- f_YG_val * w["YG"] / w_bar
     f_Yg_s_val <- f_Yg_val * w["Yg"] / w_bar
@@ -589,14 +589,18 @@ writeLines(" ---------  fin iterations --------")
 
 dt_tot <- dt[, .(
   pY_tot = mean(pY_m),
-  pG_tot = mean(pG_m)
+  pG_tot = mean(pG_m),
+  fYG_tot = mean(f_YG_m),
+  fYg_tot = mean(f_Yg_m),
+  fyG_tot = mean(f_yG_m),
+  fyg_tot = mean(f_yg_m)
 ), by = generation]
 
 
 # ------------- graphique -------------- #
 
 # PY et PG au cours des générations pour chaque population
-p1 <- ggplot(dt, aes(x = generation, y = pY_m, color = as.factor(population))) +
+py <- ggplot(dt, aes(x = generation, y = pY_m, color = as.factor(population))) +
   geom_line(alpha = 0.7) +
   geom_line(data = dt_tot, aes(x = generation, y = pY_tot),
             color = "black", linewidth = 1.3) +
@@ -605,7 +609,7 @@ p1 <- ggplot(dt, aes(x = generation, y = pY_m, color = as.factor(population))) +
        y = "Fréquence de l'allèle Y",
        color = "Population") +
   theme_minimal()
-p2 <- ggplot(dt, aes(x = generation, y = pG_m, color = as.factor(population))) +
+pg <- ggplot(dt, aes(x = generation, y = pG_m, color = as.factor(population))) +
   geom_line(alpha = 0.7) +
   geom_line(data = dt_tot, aes(x = generation, y = pG_tot),
             color = "black", linewidth = 1.3) +
@@ -617,7 +621,7 @@ p2 <- ggplot(dt, aes(x = generation, y = pG_m, color = as.factor(population))) +
 
 # affiches les deux plot sur un meme graphique
 
-p <- grid.arrange(p1, p2, ncol = 1)
+p <- grid.arrange(py, pg, ncol = 1)
 
 # Nettoyage du nom du scénario pour le nom de fichier
 choix_clean <- gsub("[^A-Za-z0-9_]+", "_", choix)
@@ -625,3 +629,54 @@ choix_clean <- gsub("[^A-Za-z0-9_]+", "_", choix)
 ggsave(paste0("evolution_freq_Y_G_", choix_clean, ".png"),
        p,
        width = 8, height = 10)
+
+# frequence génotypiques cours des générations pour chaque population
+fYG <- ggplot(dt, aes(x = generation, y = f_YG_m, color = as.factor(population))) +
+  geom_line(alpha = 0.7) +
+  geom_line(data = dt_tot, aes(x = generation, y = fYG_tot),
+            color = "black", linewidth = 1.3) +
+  labs(title = "Fréquence du génotype YG au cours des générations",
+       x = "Génération",
+       y = "Fréquence du génotype YG",
+       color = "Population") +
+  theme_minimal()
+
+fYg <- ggplot(dt, aes(x = generation, y = f_Yg_m, color = as.factor(population))) +
+  geom_line(alpha = 0.7) +
+  geom_line(data = dt_tot, aes(x = generation, y = fYg_tot),
+            color = "black", linewidth = 1.3) +
+  labs(title = "Fréquence du génotype Yg au cours des générations",
+       x = "Génération",
+       y = "Fréquence du génotype Yg",
+       color = "Population") +
+  theme_minimal()
+
+fyG <- ggplot(dt, aes(x = generation, y = f_yG_m, color = as.factor(population))) +
+  geom_line(alpha = 0.7) +
+  geom_line(data = dt_tot, aes(x = generation, y = fyG_tot),
+            color = "black", linewidth = 1.3) +
+  labs(title = "Fréquence du génotype yG au cours des générations",
+       x = "Génération",
+       y = "Fréquence du génotype yG",
+       color = "Population") +
+  theme_minimal()
+
+fyg <- ggplot(dt, aes(x = generation, y = f_yg_m, color = as.factor(population))) +
+  geom_line(alpha = 0.7) +
+  geom_line(data = dt_tot, aes(x = generation, y = fyg_tot),
+            color = "black", linewidth = 1.3) +
+  labs(title = "Fréquence du génotype yg au cours des générations",
+       x = "Génération",
+       y = "Fréquence du génotype yg",
+       color = "Population") +
+  theme_minimal()
+
+# affiches les deux plot sur un meme graphique
+
+f <- grid.arrange(fYG, fYg, fyG, fyg, ncol = 2)
+
+
+
+ggsave(paste0("evolution_freq_geno_", choix_clean, ".png"),
+       f,
+       width = 16, height = 10)
