@@ -26,10 +26,11 @@ nb_populations <- 8
 
 # Nombre de jours d'activitéde l'oïdium
 
-nb_jours_an <- 150 # mi avril à mi-septembre
+#nb_jours_an <- 150 # mi avril à mi-septembre
 
-nb_jours_nvl_gen <- 10
+#nb_jours_nvl_gen <- 10
 
+# Nombre de générations par an :
 nb_gen_an <- 15
 
 scenarios <- c("Scénario A (Pas de traitement)",
