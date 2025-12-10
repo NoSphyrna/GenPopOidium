@@ -6,6 +6,8 @@ library(tidyverse, help, pos = 2, lib.loc = NULL)
 library(data.table)
 library(gridExtra)
 
+library(tcltk)
+
 # Assignation des string
 
 dmi <- "DMI"
@@ -33,22 +35,107 @@ nb_populations <- 8
 # Nombre de générations par an :
 nb_gen_an <- 15
 
-scenarios <- c("Scénario A (Pas de traitement)",
-              "Scénario B (Uniquements DMI)",
-              "Scénario C (Uniquement QoI)",
-              "Scénario D (Uniquement DMI & QoI)",
-              "Scénario E (Alternance DMI et QoI)",
-              "Scénario F (Populations refuges + traitements DMI)",
-              "Scénario G (Populations refuges + traitements QoI)",
-              "Scénario H (Populations refuges + traitements DMI & QoI)",
-              "Scénario I (Traitements aléatoires)")
+scenarios_traitement <- c("A:Pas de traitement",
+              "B:Uniquements DMI",
+              "C:Uniquement QoI",
+              "D:Uniquement DMI & QoI",
+              "E:Alternance DMI et QoI",
+              "F:Populations refuges + traitements DMI",
+              "G:Populations refuges + traitements QoI",
+              "H:Populations refuges + traitements DMI & QoI",
+              "I:Traitements aléatoires")
 
-choix <- select.list(
-  scenarios,
-  title = "Choisissez un scénario",
-  multiple = FALSE
-)
+scenarios_fit <- c("1:Pas de coût de la résistance",
+                   "2:Coût modéré additif à la résistance",
+                   "3:Coût élevé additif à la résistance",
+                   "4:Coût modére et cumulation élevé de la résistance",
+                   "5:Traitements peu efficaces",
+                   "6:Traitements très efficaces")
 
+scenarios_freq_init <- c("1: toutes différérentes",
+                         "2: toutes identiques fabile",
+                         "3: toutes identiques modérée",
+                         "4: aleatoire faible")
+
+choix_scenarios <- function(options1, options2, options3,
+                         titre1 = "Traitement",
+                         titre2 = "Fitness",
+                         titre3 = "Fréquences initiales") {
+  tt <- tktoplevel()
+  tkwm.title(tt, "Choix multiples")
+  
+  frame1 <- tkframe(tt, padx = 10, pady = 10)
+  frame2 <- tkframe(tt, padx = 10, pady = 10)
+  frame3 <- tkframe(tt, padx = 10, pady = 10)
+  
+  tkpack(tklabel(frame1, text = titre1))
+  tkpack(tklabel(frame2, text = titre2))
+  tkpack(tklabel(frame3, text = titre3))
+  
+  # Listbox 1
+  lb1 <- tklistbox(frame1, height = 10, selectmode = "single", exportselection = FALSE)
+  tkpack(lb1, expand = TRUE)
+  
+  # Remplissage manuel (évite le split sur les espaces)
+  for (i in options1) {
+    tkinsert(lb1, "end", i)
+  }
+  
+  # Choix par défaut (1er élément)
+tkselection.set(lb1, 0)
+
+  # Listbox 2
+  lb2 <- tklistbox(frame2, height = 10, selectmode = "single", exportselection = FALSE)
+  tkpack(lb2, expand = TRUE)
+  
+  for (i in options2) {
+    tkinsert(lb2, "end", i)
+  }
+
+  # Choix par défaut (1er élément)
+  tkselection.set(lb2, 0)
+
+  # listbox 3
+  lb3 <- tklistbox(frame3, height = 10, selectmode = "single", exportselection = FALSE)
+  tkpack(lb3, expand = TRUE)
+
+  for (i in options3) {
+    tkinsert(lb3, "end", i)
+  }
+  
+  # Choix par défaut (1er élément)
+  tkselection.set(lb3, 0)
+
+  validate <- tclVar(0)
+  
+  tkpack(
+    tkbutton(tt, text = "Valider",
+             command = function() tclvalue(validate) <<- 1),
+    pady = 10
+  )
+  
+  tkpack(frame1, side = "left")
+  tkpack(frame2, side = "left")
+  tkpack(frame3, side = "left")
+  
+  # Attente du clic
+  tkwait.variable(validate)
+  
+  # Récupération des choix
+  idx1 <- as.integer(tkcurselection(lb1)) + 1
+  idx2 <- as.integer(tkcurselection(lb2)) + 1
+  idx3 <- as.integer(tkcurselection(lb3)) + 1
+  
+  traitement <- if(length(idx1)) options1[idx1] else NA
+  fitness <- if(length(idx2)) options2[idx2] else NA
+  init <- if(length(idx3)) options3[idx3] else NA
+  
+  tkdestroy(tt)
+
+  return(list(traitement = traitement, fitness = fitness, init = init))
+}
+
+choix <- choix_scenarios(scenarios_traitement, scenarios_fit, scenarios_freq_init)
 
 writeLines(paste("\n", choix, "\n"))
 
@@ -370,29 +457,78 @@ planifications_traitements_I <- list(
 
 
 
-planifications_traitements <- switch(choix,
-    "Scénario A (Pas de traitement)" = planifications_traitements_A,
-    "Scénario B (Uniquements DMI)" = planifications_traitements_B,
-    "Scénario C (Uniquement QoI)" = planifications_traitements_C,
-    "Scénario D (Uniquement DMI & QoI)" = planifications_traitements_D,
-    "Scénario E (Alternance DMI et QoI)" = planifications_traitements_E,
-    "Scénario F (Populations refuges + traitements DMI)" = planifications_traitements_F,
-    "Scénario G (Populations refuges + traitements QoI)" = planifications_traitements_G,
-    "Scénario H (Populations refuges + traitements DMI & QoI)" = planifications_traitements_H,
-    "Scénario I (Traitements aléatoires)" = planifications_traitements_I,
+planifications_traitements <- switch(choix$traitement,
+    "A:Pas de traitement" = planifications_traitements_A,
+    "B:Uniquements DMI" = planifications_traitements_B,
+    "C:Uniquement QoI" = planifications_traitements_C,
+    "D:Uniquement DMI & QoI" = planifications_traitements_D,
+    "E:Alternance DMI et QoI" = planifications_traitements_E,
+    "F:Populations refuges + traitements DMI" = planifications_traitements_F,
+    "G:Populations refuges + traitements QoI" = planifications_traitements_G,
+    "H:Populations refuges + traitements DMI & QoI" = planifications_traitements_H,
+    "I:Traitements aléatoires" = planifications_traitements_I,
     planifications_traitements_A # par défaut
 )
 
 
 # valeurs selectives avec et sans traitements :
 
-w_traitements <- list(
+# pas de coût à la résisatnce
+w_traitements_1 <- list(
+  sans_traitements       = c(YG = 1.0, Yg = 1.0, yG = 1.0, yg = 1.0),
+  traitements_DMI        = c(YG = 1.0, Yg = 1.0, yG = 0.2, yg = 0.2),
+  traitements_QoI        = c(YG = 1.0, Yg = 0.2, yG = 1.0, yg = 0.2),
+  traitements_DMI_et_QoI = c(YG = 1.0, Yg = 0.2, yG = 0.2, yg = 0.05)
+)
+# coût additionnel à la résistance et légerement supérieur pour la res aux DMI
+w_traitements_2 <- list(
   sans_traitements       = c(YG = 0.7, Yg = 0.8, yG = 0.9, yg = 1.0),
   traitements_DMI        = c(YG = 0.9, Yg = 1.0, yG = 0.1, yg = 0.2),
   traitements_QoI        = c(YG = 0.8, Yg = 0.1, yG = 1.0, yg = 0.2),
   traitements_DMI_et_QoI = c(YG = 1.0, Yg = 0.1, yG = 0.2, yg = 0.05)
 )
 
+# coût additionnel fort à la résistance et légerement supérieur pour la res aux DMI
+w_traitements_3 <- list(
+  sans_traitements       = c(YG = 0.3, Yg = 0.6, yG = 0.7, yg = 1.0),
+  traitements_DMI        = c(YG = 0.7, Yg = 1.0, yG = 0.01, yg = 0.2),
+  traitements_QoI        = c(YG = 0.6, Yg = 0.01, yG = 1.0, yg = 0.2),
+  traitements_DMI_et_QoI = c(YG = 1.0, Yg = 0.1, yG = 0.2, yg = 0.05)
+)
+
+# double résistance très coûteuse
+w_traitements_4 <- list(
+  sans_traitements       = c(YG = 0.4, Yg = 0.8, yG = 0.9, yg = 1.0),
+  traitements_DMI        = c(YG = 0.6, Yg = 1.0, yG = 0.1, yg = 0.2),
+  traitements_QoI        = c(YG = 0.5, Yg = 0.1, yG = 1.0, yg = 0.2),
+  traitements_DMI_et_QoI = c(YG = 1.0, Yg = 0.1, yG = 0.2, yg = 0.05)
+)
+
+# traitements peu efficaces
+w_traitements_5 <- list(
+  sans_traitements       = c(YG = 0.7, Yg = 0.8, yG = 0.9, yg = 1.0),
+  traitements_DMI        = c(YG = 0.9, Yg = 1.0, yG = 0.4, yg = 0.5),
+  traitements_QoI        = c(YG = 0.8, Yg = 0.3, yG = 1.0, yg = 0.5),
+  traitements_DMI_et_QoI = c(YG = 1.0, Yg = 0.10, yG = 0.15, yg = 0.25)
+)
+
+# traitements très efficaces
+w_traitements_6 <- list(
+  sans_traitements       = c(YG = 0.7, Yg = 0.8, yG = 0.9, yg = 1.0),
+  traitements_DMI        = c(YG = 0.9, Yg = 1.0, yG = 0.005, yg = 0.01),
+  traitements_QoI        = c(YG = 0.8, Yg = 0.005, yG = 1.0, yg = 0.01),
+  traitements_DMI_et_QoI = c(YG = 1.0, Yg = 0.005, yG = 0.005, yg = 0.001)
+)
+
+w_traitements <- switch(choix$fitness,
+                   "1:Pas de coût de la résistance" = w_traitements_1,
+                   "2:Coût modéré additif à la résistance" = w_traitements_2,
+                   "3:Coût élevé additif à la résistance" = w_traitements_3,
+                   "4:Coût modére et cumulation élevé de la résistance" = w_traitements_4,
+                   "5:Traitements peu efficaces" = w_traitements_5,
+                   "6:Traitements très efficaces" = w_traitements_6,
+                    w_traitements_1# par défaut
+)
 # Matrice des taux de migrations (m_ij = taux de migration de j vers i):
 
 m <- matrix(
@@ -410,12 +546,37 @@ m <- matrix(
 )
 
 
-# fréquences initiales :
-freq_init <- data.table(
+# fréquences initiales toutes diffs :
+freq_init_1 <- data.table(
   population = 1:8,
   pY0 = c(0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2),
   pG0 = c(0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1)
 )
+# fréquences indentiques faibles :
+freq_init_2 <- data.table(
+  population = 1:8,
+  pY0 = c(0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05),
+  pG0 = c(0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05)
+)
+# fréquences identiques modérées :
+freq_init_3 <- data.table(
+  population = 1:8,
+  pY0 = c(0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5),
+  pG0 = c(0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5)
+)
+# fréquences aléatoires faibles :
+freq_init_4 <- data.table(
+  population = 1:8,
+  pY0 = c(0.1,0.15,0.05,0.2,0.1,0.15,0.05,0.2),
+  pG0 = c(0.2,0.1,0.15,0.05,0.2,0.1,0.15,0.05)
+)
+freq_init <- switch(choix$init,
+                        "1: toutes différérentes" = freq_init_1,
+                        "2: toutes identiques fabile" = freq_init_2,
+                        "3: toutes identiques modérée" = freq_init_3,
+                        "4: aleatoire faible" = freq_init_4,
+                        freq_init_1# par défaut
+                        )
 
 
 ## ------------- Initialisation -------------------
@@ -601,78 +762,89 @@ dt_tot <- dt[, .(
 # ------------- graphique -------------- #
 
 # PY et PG au cours des générations pour chaque population
-py <- ggplot(dt, aes(x = generation, y = pY_m, color = as.factor(population))) +
-  geom_line(alpha = 0.7) +
-  geom_line(data = dt_tot, aes(x = generation, y = pY_tot),
-            color = "black", linewidth = 1.3) +
-  labs(title = "Fréquence de l'allèle Y (populations + moyenne globale)",
-       x = "Génération",
-       y = "Fréquence de l'allèle Y",
-       color = "Population") +
-  theme_minimal()
-pg <- ggplot(dt, aes(x = generation, y = pG_m, color = as.factor(population))) +
-  geom_line(alpha = 0.7) +
-  geom_line(data = dt_tot, aes(x = generation, y = pG_tot),
-            color = "black", linewidth = 1.3) +
-  labs(title = "Fréquence de l'allèle G au cours des générations",
-       x = "Génération",
-       y = "Fréquence de l'allèle G",
-       color = "Population") +
-  theme_minimal()
+
+plot_allele <- function(dt, dt_tot, var_pop, var_tot, titre, ylab) {
+  
+  # vecteur des populations
+  pops <- levels(as.factor(dt$population))
+  
+  # couleurs automatiques nommées
+  pop_cols <- setNames(scales::hue_pal()(length(pops)), pops)
+  
+  # ajout de la couleur de la moyenne
+  all_cols <- c(pop_cols, "Moyenne" = "black")
+  
+  ggplot(dt, aes(x = generation, y = .data[[var_pop]],
+                 color = as.factor(population))) +
+    geom_line(alpha = 0.7) +
+    
+    geom_line(data = dt_tot,
+              aes(x = generation, y = .data[[var_tot]],
+                  color = "Moyenne"),
+              linewidth = 1.3) +
+    
+    scale_color_manual(name = "Population",
+                       values = all_cols) +
+    
+    labs(title = titre,
+         x = "Génération",
+         y = ylab) +
+    theme_minimal()
+}
+
+py <- plot_allele(dt, dt_tot,
+                  var_pop = "pY_m",
+                  var_tot = "pY_tot",
+                  titre = "Fréquence de l'allèle Y au cours des générations",
+                  ylab = "Fréquence de l'allèle Y")
+
+pg <- plot_allele(dt, dt_tot,
+                  var_pop = "pG_m",
+                  var_tot = "pG_tot",
+                  titre = "Fréquence de l'allèle G au cours des générations",
+                  ylab = "Fréquence de l'allèle G")
+
 
 # affiches les deux plot sur un meme graphique
 
 p <- grid.arrange(py, pg, ncol = 1)
 
 # Nettoyage du nom du scénario pour le nom de fichier
-choix_clean <- gsub("[^A-Za-z0-9_]+", "_", choix)
+choix_clean <- paste(gsub("[^A-Za-z0-9_]+", "_", choix$traitement),
+                     gsub("[^A-Za-z0-9_]+", "_", choix$fitness),
+                     sep = "_")
 
 ggsave(paste0("evolution_freq_Y_G_", choix_clean, ".png"),
        p,
        width = 8, height = 10)
 
 # frequence génotypiques cours des générations pour chaque population
-fYG <- ggplot(dt, aes(x = generation, y = f_YG_m, color = as.factor(population))) +
-  geom_line(alpha = 0.7) +
-  geom_line(data = dt_tot, aes(x = generation, y = fYG_tot),
-            color = "black", linewidth = 1.3) +
-  labs(title = "Fréquence du génotype YG au cours des générations",
-       x = "Génération",
-       y = "Fréquence du génotype YG",
-       color = "Population") +
-  theme_minimal()
+fYG <- plot_allele(dt, dt_tot,
+                  var_pop = "f_YG_m",
+                  var_tot = "fYG_tot",
+                  titre = "Fréquence du génotype YG au cours des générations",
+                  ylab = "Fréquence du génotype YG")
 
-fYg <- ggplot(dt, aes(x = generation, y = f_Yg_m, color = as.factor(population))) +
-  geom_line(alpha = 0.7) +
-  geom_line(data = dt_tot, aes(x = generation, y = fYg_tot),
-            color = "black", linewidth = 1.3) +
-  labs(title = "Fréquence du génotype Yg au cours des générations",
-       x = "Génération",
-       y = "Fréquence du génotype Yg",
-       color = "Population") +
-  theme_minimal()
+fYg <- plot_allele(dt, dt_tot,
+                  var_pop = "f_Yg_m",
+                  var_tot = "fYg_tot",
+                  titre = "Fréquence du génotype Yg au cours des générations",
+                  ylab = "Fréquence du génotype Yg")
 
-fyG <- ggplot(dt, aes(x = generation, y = f_yG_m, color = as.factor(population))) +
-  geom_line(alpha = 0.7) +
-  geom_line(data = dt_tot, aes(x = generation, y = fyG_tot),
-            color = "black", linewidth = 1.3) +
-  labs(title = "Fréquence du génotype yG au cours des générations",
-       x = "Génération",
-       y = "Fréquence du génotype yG",
-       color = "Population") +
-  theme_minimal()
+fyG <- plot_allele(dt, dt_tot,
+                  var_pop = "f_yG_m",
+                  var_tot = "fyG_tot",
+                  titre = "Fréquence du génotype yG au cours des générations",
+                  ylab = "Fréquence du génotype yG")
 
-fyg <- ggplot(dt, aes(x = generation, y = f_yg_m, color = as.factor(population))) +
-  geom_line(alpha = 0.7) +
-  geom_line(data = dt_tot, aes(x = generation, y = fyg_tot),
-            color = "black", linewidth = 1.3) +
-  labs(title = "Fréquence du génotype yg au cours des générations",
-       x = "Génération",
-       y = "Fréquence du génotype yg",
-       color = "Population") +
-  theme_minimal()
+fyg <- plot_allele(dt, dt_tot,
+                  var_pop = "f_yg_m",
+                  var_tot = "fyg_tot",
+                  titre = "Fréquence du génotype yg au cours des générations",
+                  ylab = "Fréquence du génotype yg")
 
-# affiches les deux plot sur un meme graphique
+
+# affiche les plots sur un meme graphique
 
 f <- grid.arrange(fYG, fYg, fyG, fyg, ncol = 2)
 
