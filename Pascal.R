@@ -73,7 +73,7 @@ choix_scenarios <- function(options1, options2, options3,
   tkpack(tklabel(frame3, text = titre3))
   
   # Listbox 1
-  lb1 <- tklistbox(frame1, height = 10, selectmode = "single", exportselection = FALSE)
+  lb1 <- tklistbox(frame1, height = 10, width = 40, selectmode = "single", exportselection = FALSE)
   tkpack(lb1, expand = TRUE)
   
   # Remplissage manuel (évite le split sur les espaces)
@@ -85,7 +85,7 @@ choix_scenarios <- function(options1, options2, options3,
 tkselection.set(lb1, 0)
 
   # Listbox 2
-  lb2 <- tklistbox(frame2, height = 10, selectmode = "single", exportselection = FALSE)
+  lb2 <- tklistbox(frame2, height = 10, width = 40, selectmode = "single", exportselection = FALSE)
   tkpack(lb2, expand = TRUE)
   
   for (i in options2) {
@@ -96,7 +96,7 @@ tkselection.set(lb1, 0)
   tkselection.set(lb2, 0)
 
   # listbox 3
-  lb3 <- tklistbox(frame3, height = 10, selectmode = "single", exportselection = FALSE)
+  lb3 <- tklistbox(frame3, height = 10, width = 40, selectmode = "single", exportselection = FALSE)
   tkpack(lb3, expand = TRUE)
 
   for (i in options3) {
@@ -665,7 +665,10 @@ for (gen in 1:nb_generations){
     f_yG_val <- dt[idxprev]$f_yG_m
     f_yg_val <- dt[idxprev]$f_yg_m
 
-    w <- get_fitness(population = pop, gen = gen, planification = planifications_traitements, val_selectives = w_traitements)
+    w <- get_fitness(population = pop,
+                     gen = gen,
+                     planification = planifications_traitements,
+                     val_selectives = w_traitements)
 
     w_bar <- f_YG_val*w["YG"] +
              f_Yg_val*w["Yg"] +
