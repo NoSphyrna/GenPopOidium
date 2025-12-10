@@ -812,6 +812,7 @@ p <- grid.arrange(py, pg, ncol = 1)
 # Nettoyage du nom du scénario pour le nom de fichier
 choix_clean <- paste(gsub("[^A-Za-z0-9_]+", "_", choix$traitement),
                      gsub("[^A-Za-z0-9_]+", "_", choix$fitness),
+                     gsub("[^A-Za-z0-9_]+", "_", choix$init),
                      sep = "_")
 
 ggsave(paste0("evolution_freq_Y_G_", choix_clean, ".png"),
